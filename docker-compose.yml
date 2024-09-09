@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    container_name: openlimit_app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - .env
+    command: python main.py
