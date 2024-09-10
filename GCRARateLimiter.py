@@ -2,6 +2,7 @@ import time
 import asyncio
 from tokencost import calculate_prompt_cost
 
+
 class GCRARateLimiter:
     def __init__(self, request_limit_per_minute, token_limit_per_minute, debug=False):
         self.request_limit = request_limit_per_minute
@@ -22,14 +23,17 @@ class GCRARateLimiter:
         if self.debug:
             print(f"Rate limiter initialized: {self.request_limit} requests/min and {self.token_limit} tokens/min.", flush=True)
 
-    def calculate_token_usage(self, messages, max_tokens, model):
-        """Calculate the number of tokens required for a request."""
+    def calculate_token_usage(self, messages, max_tokens, model, max_output_tokens):
+        """Calculate the number of tokens required for a request, including a 50% buffer on the max output tokens."""
         content = ' '.join([msg['content'] for msg in messages])
         num_tokens = calculate_prompt_cost(content, model=model)  # Use dynamic model argument
         num_tokens = float(num_tokens)  # Convert num_tokens to float
-        num_tokens += max_tokens  # Add max tokens for completion
+
+        # Add max_output_tokens + 50% buffer
+        num_tokens += max_tokens + (max_output_tokens * 1.5)
+
         if self.debug:
-            print(f"Calculated token usage: {num_tokens} tokens for model {model} (prompt + completion estimate)", flush=True)
+            print(f"Calculated token usage: {num_tokens} tokens for model {model} (prompt + completion estimate with buffer)", flush=True)
         return num_tokens
 
     async def enforce_rate_limit_async(self, num_tokens):

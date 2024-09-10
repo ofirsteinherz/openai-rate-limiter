@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    container_name: openlimit_app
+    container_name: openai_rate_limiter
     ports:
       - "8000:80"
     volumes:

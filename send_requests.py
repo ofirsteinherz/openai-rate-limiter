@@ -26,16 +26,19 @@ async def send_requests(model, messages_list, max_tokens=50, debug=False, task_t
     total_output_tokens = 0
     total_successful_tasks = 0
 
+    # Track max token usage of the outputs and add 50% buffer
+    max_output_tokens = 0
+
     async def send_single_request(messages, task_id):
-        nonlocal total_input_tokens, total_output_tokens, total_successful_tasks
+        nonlocal total_input_tokens, total_output_tokens, total_successful_tasks, max_output_tokens
         attempt = 0
         while attempt < max_retries:
             try:
                 if debug:
                     print(f"Task {task_id}: Starting request with messages: {messages}", flush=True)
 
-                # Calculate tokens for this request
-                num_tokens = limiter.calculate_token_usage(messages, max_tokens, model)
+                # Calculate tokens for this request including 50% buffer on max_output_tokens
+                num_tokens = limiter.calculate_token_usage(messages, max_tokens, model, max_output_tokens)
                 total_input_tokens += num_tokens
 
                 # Enforce rate limiting before making the request
@@ -53,6 +56,10 @@ async def send_requests(model, messages_list, max_tokens=50, debug=False, task_t
                 # Count output tokens and adjust token usage
                 total_output_tokens += response_tokens
                 limiter.token_bucket -= response_tokens  # Deduct the output tokens from the bucket
+
+                # Update max_output_tokens if current response tokens exceed the previous max
+                if response_tokens > max_output_tokens:
+                    max_output_tokens = response_tokens
 
                 if debug:
                     print(f"Task {task_id}: Response received: {response} (Response tokens: {response_tokens})", flush=True)
@@ -111,9 +118,6 @@ async def send_requests(model, messages_list, max_tokens=50, debug=False, task_t
                 # Print details about pending tasks
                 if debug:
                     print(f"Pending tasks: {len(pending)} | Completed tasks: {len(done)}", flush=True)
-                    # if pending:
-                    #     for task in pending:
-                    #         print(f"Pending task {task} with messages: {task_to_message[task]}", flush=True)
 
                 # Print the current state of the token bucket
                 if debug:
