@@ -1,7 +1,3 @@
-Here is a basic **README.md** for your project:
-
----
-
 # OpenAI Rate Limiter
 
 ## Description
