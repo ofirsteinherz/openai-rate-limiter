@@ -4,7 +4,6 @@ import os
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install
-from rich.table import Table
 import pandas as pd
 
 class CustomLogger:
@@ -35,14 +34,22 @@ class CustomLogger:
         self.logger = logging.getLogger("custom_logger")
         self.logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
 
-        # Add RichHandler for console output
-        rich_handler = RichHandler(console=self.console, markup=True, rich_tracebacks=True)
+        # Custom RichHandler for console output with custom formatting
+        rich_handler = RichHandler(
+            console=self.console,
+            markup=True,
+            rich_tracebacks=True,
+            show_path=True,
+            omit_repeated_times=False,  # This ensures timestamps repeat on new lines
+        )
+        # Set up the formatter without time, as RichHandler handles that
         self.logger.addHandler(rich_handler)
 
-        # Add file handler
+        # Add file handler with a detailed format
         file_handler = logging.FileHandler(log_file_path)
         file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        # Here we keep the timestamp, level, filename, and line number in log files
+        file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
         file_handler.setFormatter(file_format)
         self.logger.addHandler(file_handler)
 
@@ -52,23 +59,24 @@ class CustomLogger:
         if level == "debug" and not self.debug_mode:
             return
         if level == "debug":
-            self.logger.debug(message)
+            self.logger.debug(message, stacklevel=2)
         elif level == "info":
-            self.logger.info(message)
+            self.logger.info(message, stacklevel=2)
         elif level == "warning":
-            self.logger.warning(message)
+            self.logger.warning(message, stacklevel=2)
         elif level == "error":
-            self.logger.error(message)
+            self.logger.error(message, stacklevel=2)
             self._send_error_notification(message)
         elif level == "critical":
-            self.logger.critical(message)
+            self.logger.critical(message, stacklevel=2)
             self._send_error_notification(message)
 
     def log_exception(self, ex):
-        self.logger.exception(f"Exception occurred: {str(ex)}")
+        self.logger.exception(f"Exception occurred: {str(ex)}", stacklevel=2)
         self._send_error_notification(str(ex))
 
     def log_table(self, headers, rows):
+        from rich.table import Table
         table = Table(show_header=True, header_style="bold magenta")
         for header in headers:
             table.add_column(header)
